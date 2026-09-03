@@ -38,6 +38,20 @@ git clone https://github.com/tututashu/deep-video-converter-skill.git <你的项
 
 从 [Releases](https://github.com/tututashu/deep-video-converter-skill/releases) 下载 `deep-video-converter.zip`，解压后把 `deep-video-converter/` 文件夹放到 `~/.workbuddy/skills/` 或项目 `.workbuddy/skills/`。
 
+## 在 Claude Code / Codex 中使用
+
+本 skill 遵循 Agent Skills（SKILL.md）开放标准，同样适用于 **Claude Code**（`~/.claude/skills/`）与 **OpenAI Codex CLI**（`~/.codex/skills/`），格式零改动，clone 即用：
+
+```bash
+# Claude Code（用户级）
+git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.claude/skills/deep-video-converter
+
+# Codex CLI（用户级）
+git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.codex/skills/deep-video-converter
+```
+
+完整说明（项目级安装、验证、卸载、注意事项）：[docs/cross-agent-install.md](docs/cross-agent-install.md)
+
 ### 验证安装
 
 新会话中提问（任选其一），若 skill 生效 AI 会直接按流程执行而不是泛泛回答：
