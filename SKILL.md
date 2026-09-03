@@ -17,8 +17,7 @@ Deploy, run, verify, and troubleshoot the **Deep Video Converter**: an offline, 
 
 ## 1. Locate or clone the repo
 
-- Prefer an existing checkout on this machine; the current workspace usually contains it (e.g. `<workspace>/deep-video-converter/`).
-- If absent, clone the public repo:
+- Prefer an existing local checkout if one is already on the machine; otherwise clone the public repo:
   ```bash
   git clone https://github.com/tututashu/deep-video-converter.git
   cd deep-video-converter
@@ -55,7 +54,7 @@ scripts\run.bat
 
 - Serves on `http://localhost:8000` (override with `PORT`), bound to `0.0.0.0` (LAN-reachable).
 - `run.sh` hard-requires ffmpeg and an existing `venvs/env-main` — errors out with a clear message otherwise.
-- Run it as the foreground command of a background task if the session needs to keep working; **do not** `cmd &` then exit the shell (kills the server).
+- Keep the launching shell alive — exiting it can kill the server. For unattended/long-running use, wrap it with `nohup`, `tmux`/`screen`, or a service manager.
 
 ## 4. Use the tool (five modes)
 
