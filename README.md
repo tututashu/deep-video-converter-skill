@@ -1,12 +1,17 @@
-# deep-video-converter · WorkBuddy Skill
+# deep-video-converter · Agent Skill
 
-[Deep Video Converter](https://github.com/tututashu/deep-video-converter) 的 WorkBuddy 部署/运维技能包 —— 让 AI 助手能一键完成该工具的克隆、环境搭建、启动、五种特效模式的使用、免浏览器验证与故障排查。
+[Deep Video Converter](https://github.com/tututashu/deep-video-converter) 的部署/运维 Agent Skill —— 让 AI 助手能一键完成该工具的克隆、环境搭建、启动、五种特效模式的使用、免浏览器验证与故障排查。
 
 > 对应项目仓库：https://github.com/tututashu/deep-video-converter
 
 ## 这是什么
 
-本仓库本身就是标准 WorkBuddy skill 结构（顶层 `SKILL.md` + `references/`），clone 后直接可被识别为 skill，无需二次组装。
+本仓库遵循 **Agent Skills（SKILL.md）开放标准**（顶层 `SKILL.md` + `references/`），凡是支持该标准的 agent 都能直接识别使用，无需二次组装。目前已兼容：
+
+- **Claude Code** → `~/.claude/skills/`
+- **OpenAI Codex CLI** → `~/.codex/skills/`
+- **WorkBuddy** → `~/.workbuddy/skills/`
+- 其他 SKILL.md 标准实现（Cursor、OpenClaw 等）
 
 skill 触发后会自动按流程执行：
 
@@ -18,39 +23,20 @@ skill 触发后会自动按流程执行：
 
 ## 安装
 
-### 方式一：clone 到用户级技能目录（推荐）
+按所用 agent 选择用户级技能目录（所有项目通用）：
 
 ```bash
+# Claude Code
+git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.claude/skills/deep-video-converter
+
+# Codex CLI
+git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.codex/skills/deep-video-converter
+
+# WorkBuddy
 git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.workbuddy/skills/deep-video-converter
 ```
 
-所有 WorkBuddy 项目通用。
-
-### 方式二：clone 到项目级技能目录
-
-```bash
-git clone https://github.com/tututashu/deep-video-converter-skill.git <你的项目>/.workbuddy/skills/deep-video-converter
-```
-
-仅在该项目目录下生效。
-
-### 方式三：下载 zip 手动解压
-
-从 [Releases](https://github.com/tututashu/deep-video-converter-skill/releases) 下载 `deep-video-converter.zip`，解压后把 `deep-video-converter/` 文件夹放到 `~/.workbuddy/skills/` 或项目 `.workbuddy/skills/`。
-
-## 在 Claude Code / Codex 中使用
-
-本 skill 遵循 Agent Skills（SKILL.md）开放标准，同样适用于 **Claude Code**（`~/.claude/skills/`）与 **OpenAI Codex CLI**（`~/.codex/skills/`），格式零改动，clone 即用：
-
-```bash
-# Claude Code（用户级）
-git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.claude/skills/deep-video-converter
-
-# Codex CLI（用户级）
-git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.codex/skills/deep-video-converter
-```
-
-完整说明（项目级安装、验证、卸载、注意事项）：[docs/cross-agent-install.md](docs/cross-agent-install.md)
+或从 [Releases](https://github.com/tututashu/deep-video-converter-skill/releases) 下载 `deep-video-converter.zip`，解压后把 `deep-video-converter/` 文件夹放到上述任一技能目录。
 
 ### 验证安装
 
