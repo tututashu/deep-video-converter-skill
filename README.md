@@ -51,7 +51,9 @@ git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.workbud
 
 1. 打开 agent 会话，进入你的 deep-video-converter 项目目录（或把路径告诉 agent）
 2. 提问触发，例如："启动深度视频转换器"、"帮我把这个项目跑起来"、"跑一下 CLI 端到端验证"、"人脸点云是空的，查一下"
-3. agent 自动加载本 skill，按结构定位项目并执行对应流程
+3. agent 自动加载本 skill：先做**环境预检**（Python 3.11/3.12、ffmpeg），再按结构定位你的项目并执行对应流程
+
+**没有代码时的一键安装**：若你手头没有该项目代码，skill 内置一个**可配置默认源**（`git clone https://github.com/tututashu/deep-video-converter.git`），agent 会用它自动克隆后 setup。你可以在对话中指定自己的仓库/fork 地址覆盖它；维护者 fork 本 skill 后，把 `SKILL.md`「Locate or obtain the project」一节的默认源 URL 换成自己的仓库，即可变成你的专属一键安装技能。
 
 ## 前置条件（目标项目运行本身需要）
 
