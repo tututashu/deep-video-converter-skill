@@ -1,29 +1,56 @@
 ---
 name: deep-video-converter
-description: Deploy/operate an existing "deep video converter" style local web tool — the dual-venv Flask app that turns short videos into grayscale depth map, pose skeleton, face 478-landmark point cloud and combined overlays while keeping the original audio. Use when the user has such a project checked out locally (from any source: their own clone, fork, or an existing directory) and wants to install/set it up, start the web app, run one of the five modes, verify it end-to-end, or debug environment failures (ffmpeg, pyexpat/libexpat on macOS Sequoia, model downloads, torch pinned for Intel Mac, missing face detections on ordinary video). Covers locating the project by its structure, idempotent dual-venv + offline-model setup, launching the Flask server, the five modes, CLI verification, and reusing cached per-layer frames for fast re-compositing. This skill is a generic pattern and is not bound to any specific source repository — the target project is provided by the user.
+description: Deploy/operate a "deep video converter" style local web tool — the dual-venv Flask app that turns short videos into grayscale depth map, pose skeleton, face 478-landmark point cloud and combined overlays while keeping the original audio. Use when the user wants such a tool installed and running, or has such a project checked out locally (their own clone, fork, or existing directory) and wants to set it up, start the web app, run one of the five modes, verify it end-to-end, or debug environment failures (ffmpeg, pyexpat/libexpat on macOS Sequoia, model downloads, torch pinned for Intel Mac, missing face detections on ordinary video). Covers an environment preflight, obtaining the project (configurable default install source — only used when the user has no checkout; override with the user's own clone/fork), idempotent dual-venv + offline-model setup, launching the Flask server, the five modes, CLI verification, and reusing cached per-layer frames for fast re-compositing. This skill is a generic pattern, not bound to any repository as a primary project.
 agent_created: true
 ---
 
 # Deep Video Converter Tool — Deploy & Operate
 
-Generic deployment/operation pattern for a **"deep video converter"** local web tool: an offline, browser-based app that processes short videos with CV models (depth / pose / face) and exports the result with the **original audio preserved**. This skill is **not bound to any specific repository** — operate on the user's own checkout (from any source).
+Generic deployment/operation pattern for a **"deep video converter"** local web tool: an offline, browser-based app that processes short videos with CV models (depth / pose / face) and exports the result with the **original audio preserved**. This skill is **not bound to any repository as a primary project** — it operates on the user's own checkout (from any source) or, only if the user has no checkout, a **configurable default install source** defined below.
 
 ## Workflow Decision Tree
 
-1. **User wants it running / installed** → [Locate the project](#1-locate-the-project) → [One-shot setup](#2-one-shot-setup) → [Start the web app](#3-start-the-web-app).
+1. **User wants it running / installed** → [Preflight](#0-preflight-environment-check) → [Locate or obtain the project](#1-locate-or-obtain-the-project) → [One-shot setup](#2-one-shot-setup) → [Start the web app](#3-start-the-web-app).
 2. **Server is running but something is wrong** (no models, blank page, 500 on process) → [Troubleshooting](#6-troubleshooting).
 3. **User wants a CLI verification run** (no browser) → [Verify & debug without the browser](#5-verify--debug-without-the-browser).
 4. **Models or venvs already exist** → skip straight to [Start the web app](#3-start-the-web-app) (setup is idempotent).
 
-## 1. Locate the project
+## 0. Preflight (environment check)
 
-- Ask the user for the project path, or confirm a candidate directory. The target must contain this repo layout (the contract this skill operates against):
-  - `backend/` — `app.py` (Flask server), `pipeline.py` (orchestrator: depth+pose+composite), `face_worker.py` (face subprocess), `config.py` (paths/tunables)
-  - `frontend/index.html` — single page (drag-drop + mode cards + progress)
-  - `scripts/` — `setup.sh`/`setup.bat` (idempotent env+model bootstrap), `run.sh`/`run.bat` (launch), `run_e2e_all.py`, `recomposite_test.py`
-  - `models/` (weights — typically NOT in git, downloaded by setup), `venvs/` (created by setup, ~2GB), `jobs/` (per-job intermediates)
-- **If the user asks to install a deep video converter but does not have the code**, this skill does not bundle a source repo — point that out and ask them to provide their checkout (clone/fork URL or existing directory). Do not invent a download source.
-- Run all commands from the project root.
+Run before setup. Check for the two system prerequisites the tool cannot install itself:
+
+```bash
+command -v python3.11 || echo "MISSING: python3.11 (face env)"
+command -v python3.12 || command -v python3 || echo "MISSING: python3.12 or 3.10+ (main env)"
+command -v ffmpeg || echo "MISSING: ffmpeg"
+```
+
+If anything is missing, report it clearly and give the fix — do not proceed:
+- **python3.11**: Mac `brew install python@3.11`; Windows/Linux: install from python.org or the distro package manager (must be Python 3.11 specifically for the face env).
+- **python3.12 / 3.10+**: Mac `brew install python@3.12` (or use an existing 3.10+); Windows: python.org.
+- **ffmpeg**: Mac `brew install ffmpeg`; Windows: install from ffmpeg.org and add to PATH; Linux: distro package (`apt install ffmpeg` / etc.).
+
+On machines where the user cannot install system packages, stop and explain rather than failing mid-setup.
+
+## 1. Locate or obtain the project
+
+Priority order:
+
+1. **User already has a checkout** (path they name, current directory, or an obvious `deep-video-converter/` folder nearby) → use it. Confirm it matches the structure contract below; run all commands from that root.
+2. **User has no checkout but this skill is installed for them and they want a working tool** → use the **default install source** (only when the user has no code and does not name another source):
+   ```bash
+   git clone https://github.com/tututashu/deep-video-converter.git
+   cd deep-video-converter
+   ```
+   > The default source is **configurable** — it is a fallback, not a binding. If the user names their own clone/fork URL or an existing directory, always prefer that. Maintainers who fork this skill can replace the URL above with their own repository to make it their "one-click install" source.
+3. **User asks for a tool but refuses/excludes the default source** (e.g. wants only their private repo, or no source at all) → ask for their URL or path; do not install from an unapproved source.
+
+Structure contract the target must satisfy:
+
+- `backend/` — `app.py` (Flask server), `pipeline.py` (orchestrator: depth+pose+composite), `face_worker.py` (face subprocess), `config.py` (paths/tunables)
+- `frontend/index.html` — single page (drag-drop + mode cards + progress)
+- `scripts/` — `setup.sh`/`setup.bat` (idempotent env+model bootstrap), `run.sh`/`run.bat` (launch), `run_e2e_all.py`, `recomposite_test.py`
+- `models/` (weights — typically NOT in git, downloaded by setup), `venvs/` (created by setup, ~2GB), `jobs/` (per-job intermediates)
 
 ## 2. One-shot setup
 
