@@ -28,6 +28,7 @@ command -v ffmpeg || echo "MISSING: ffmpeg"
 If anything is missing, **offer to auto-install**: present the user a clear choice and wait for their answer — do not silently install system packages, and do not skip ahead without consent.
 
 - Option 1 — **auto-install (recommended if user is on their own machine)**: run the installer for the detected OS, then re-run the preflight checks. Auto-install may require elevation; if a command fails for lack of permissions, report it and ask the user to run it themselves or approve elevation.
+  - Note: `setup.sh`/`setup.bat` also self-install prerequisites when run with `AUTO_INSTALL_PREREQS=1` (macOS/Homebrew and Windows/winget need no sudo; Linux needs passwordless sudo). Prefer the interactive choice above unless the user has explicitly authorized unattended silent install.
   - **macOS** (needs Homebrew): `brew install python@3.11 python@3.12 ffmpeg` (if `brew` is absent, report: install Homebrew first — `https://brew.sh`).
   - **Linux (Debian/Ubuntu)**: `sudo apt-get update && sudo apt-get install -y ffmpeg python3.12`; for the **face env Python 3.11** specifically use `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt-get install -y python3.11` (or pyenv if the user prefers). For other distros, fall back to the distro package manager or pyenv.
   - **Windows**: `winget install -e --id Python.Python.3.11` + `Python.Python.3.12` + `Gyan.FFmpeg` (if winget is unavailable, report and ask the user to install from python.org / ffmpeg.org, checking "Add to PATH").
