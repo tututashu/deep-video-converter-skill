@@ -1,28 +1,29 @@
 ---
 name: deep-video-converter
-description: Deploy/operate the Deep Video Converter — a self-contained offline web tool that turns a short video into depth map, pose skeleton, face 478-landmark point cloud, and combined effects while keeping the original audio. Use when the user wants to install, set up, start, use, verify, or troubleshoot this tool, or asks to "convert video to depth/pose/face overlays", "run the local video CV tool", "start the video effects web app", "run setup.sh for deep-video-converter", or reports environment issues (ffmpeg, pyexpat/libexpat, model downloads, torch on Intel Mac, MediaPipe face detection missing on normal videos). Covers locating or cloning the repo, idempotent setup of dual Python venvs + offline models, launching the Flask web app, the five modes, e2e verification and frame reuse for fast re-compositing.
+description: Deploy/operate an existing "deep video converter" style local web tool — the dual-venv Flask app that turns short videos into grayscale depth map, pose skeleton, face 478-landmark point cloud and combined overlays while keeping the original audio. Use when the user has such a project checked out locally (from any source: their own clone, fork, or an existing directory) and wants to install/set it up, start the web app, run one of the five modes, verify it end-to-end, or debug environment failures (ffmpeg, pyexpat/libexpat on macOS Sequoia, model downloads, torch pinned for Intel Mac, missing face detections on ordinary video). Covers locating the project by its structure, idempotent dual-venv + offline-model setup, launching the Flask server, the five modes, CLI verification, and reusing cached per-layer frames for fast re-compositing. This skill is a generic pattern and is not bound to any specific source repository — the target project is provided by the user.
 agent_created: true
 ---
 
-# Deep Video Converter — Deploy & Operate
+# Deep Video Converter Tool — Deploy & Operate
 
-Deploy, run, verify, and troubleshoot the **Deep Video Converter**: an offline, local, browser-based tool that processes short videos with CV models (depth / pose / face) and exports the result with the **original audio preserved**.
+Generic deployment/operation pattern for a **"deep video converter"** local web tool: an offline, browser-based app that processes short videos with CV models (depth / pose / face) and exports the result with the **original audio preserved**. This skill is **not bound to any specific repository** — operate on the user's own checkout (from any source).
 
 ## Workflow Decision Tree
 
-1. **User wants it running / installed** → follow [Locate or clone the repo](#1-locate-or-clone-the-repo) → [One-shot setup](#2-one-shot-setup) → [Start the web app](#3-start-the-web-app).
+1. **User wants it running / installed** → [Locate the project](#1-locate-the-project) → [One-shot setup](#2-one-shot-setup) → [Start the web app](#3-start-the-web-app).
 2. **Server is running but something is wrong** (no models, blank page, 500 on process) → [Troubleshooting](#6-troubleshooting).
 3. **User wants a CLI verification run** (no browser) → [Verify & debug without the browser](#5-verify--debug-without-the-browser).
 4. **Models or venvs already exist** → skip straight to [Start the web app](#3-start-the-web-app) (setup is idempotent).
 
-## 1. Locate or clone the repo
+## 1. Locate the project
 
-- Prefer an existing local checkout if one is already on the machine; otherwise clone the public repo:
-  ```bash
-  git clone https://github.com/tututashu/deep-video-converter.git
-  cd deep-video-converter
-  ```
-- Repo layout: `backend/` (Flask app + pipeline), `frontend/index.html` (single page), `scripts/` (setup/run/e2e), `models/` (weights, NOT in git — downloaded by setup), `venvs/` (created by setup, ~2GB), `jobs/` (per-job intermediates).
+- Ask the user for the project path, or confirm a candidate directory. The target must contain this repo layout (the contract this skill operates against):
+  - `backend/` — `app.py` (Flask server), `pipeline.py` (orchestrator: depth+pose+composite), `face_worker.py` (face subprocess), `config.py` (paths/tunables)
+  - `frontend/index.html` — single page (drag-drop + mode cards + progress)
+  - `scripts/` — `setup.sh`/`setup.bat` (idempotent env+model bootstrap), `run.sh`/`run.bat` (launch), `run_e2e_all.py`, `recomposite_test.py`
+  - `models/` (weights — typically NOT in git, downloaded by setup), `venvs/` (created by setup, ~2GB), `jobs/` (per-job intermediates)
+- **If the user asks to install a deep video converter but does not have the code**, this skill does not bundle a source repo — point that out and ask them to provide their checkout (clone/fork URL or existing directory). Do not invent a download source.
+- Run all commands from the project root.
 
 ## 2. One-shot setup
 
@@ -39,7 +40,7 @@ scripts\setup.bat
 What setup does (details in `references/project-notes.md`):
 1. Creates two venvs — `env-main` (torch/transformers/opencv/flask) and `env-face` (mediapipe). On macOS it auto-repairs the `pyexpat`/`libexpat` link for Homebrew Python 3.11.
 2. Installs deps from `backend/requirements_main.txt` + `requirements_face.txt`.
-3. Downloads 4 model artifacts into `models/` (~450MB total; torch weights 237MB via `download.pytorch.org`, depth model via `hf-mirror.com` default `HF_ENDPOINT`). **Network-restricted users must pre-seed `models/` or the download fails — see Troubleshooting.**
+3. Downloads model artifacts into `models/` (hundreds of MB total). Sources may mix reachable mirrors and foreign hosts — see Troubleshooting for network-restricted machines.
 
 Run setup to completion before starting. Do not interrupt mid-download (weights would be truncated; rerun setup to resume — it is idempotent and checks file existence).
 
@@ -58,7 +59,7 @@ scripts\run.bat
 
 ## 4. Use the tool (five modes)
 
-In the browser: drag-drop a short video (recommend ≤15s; processing caps the long side at 480px, see `MAX_DIM`) → pick one of five modes → 开始转换 → watch progress → download result.
+In the browser: drag-drop a short video (recommend ≤15s; processing caps the long side at 480px, see `MAX_DIM`) → pick one of five modes → start → watch progress → download result.
 
 | ID | Effect | Tech |
 |----|--------|------|
@@ -88,9 +89,9 @@ Output is H.264 + AAC with the **original audio muxed back** (silent fallback if
 | `bash scripts/run.sh` → env-main not ready | Run `bash scripts/setup.sh` first |
 | ffmpeg not found | Mac `brew install ffmpeg`; Windows: install from ffmpeg.org and add to PATH |
 | `env-face` import fails on macOS Sequoia (`pyexpat`/`libexpat`) | Rerun `setup.sh` — it runs `brew install expat` + `install_name_tool` repoint automatically |
-| Model download fails / offline machine | Pre-seed `models/` from another machine (same layout), or set `HF_ENDPOINT=https://hf-mirror.com` and retry; `run.sh` sets `HF_HUB_OFFLINE=1` so runtime never phones home |
-| Face point cloud empty on normal (non-selfie) video | Expected with a bare FaceLandmarker — this repo uses two-stage detection (BlazeFace full-frame → crop → FaceLandmarker). Check `models/face_detector/blaze_face_short_range.tflite` exists |
-| torch install fails on Intel Mac | Repo pins `torch==2.2.2` + `torchvision==0.17.2` (last macOS x86_64 wheels); never bump to ≥2.4 (arm64-only) |
+| Model download fails / offline machine | Pre-seed `models/` from another machine (same layout), or set the download endpoint mirror (`HF_ENDPOINT` for HuggingFace parts) and retry; the runtime typically sets `HF_HUB_OFFLINE=1` so it never phones home once set up |
+| Face point cloud empty on normal (non-selfie) video | Expected with a bare FaceLandmarker — this pattern uses two-stage detection (BlazeFace full-frame → crop → FaceLandmarker). Check the BlazeFace detector model file exists |
+| torch install fails on Intel Mac | Pin `torch==2.2.2` + `torchvision==0.17.2` (last macOS x86_64 wheels); never bump to ≥2.4 (arm64-only) |
 | Slow CPU processing | Normal on Intel Mac; Apple Silicon auto-uses MPS (`PYTORCH_ENABLE_MPS_FALLBACK=1`); lower `MAX_DIM` or fps for long videos |
 
 ## Architecture in one paragraph
