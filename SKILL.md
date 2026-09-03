@@ -25,12 +25,16 @@ command -v python3.12 || command -v python3 || echo "MISSING: python3.12 or 3.10
 command -v ffmpeg || echo "MISSING: ffmpeg"
 ```
 
-If anything is missing, report it clearly and give the fix — do not proceed:
-- **python3.11**: Mac `brew install python@3.11`; Windows/Linux: install from python.org or the distro package manager (must be Python 3.11 specifically for the face env).
-- **python3.12 / 3.10+**: Mac `brew install python@3.12` (or use an existing 3.10+); Windows: python.org.
-- **ffmpeg**: Mac `brew install ffmpeg`; Windows: install from ffmpeg.org and add to PATH; Linux: distro package (`apt install ffmpeg` / etc.).
+If anything is missing, **offer to auto-install**: present the user a clear choice and wait for their answer — do not silently install system packages, and do not skip ahead without consent.
 
-On machines where the user cannot install system packages, stop and explain rather than failing mid-setup.
+- Option 1 — **auto-install (recommended if user is on their own machine)**: run the installer for the detected OS, then re-run the preflight checks. Auto-install may require elevation; if a command fails for lack of permissions, report it and ask the user to run it themselves or approve elevation.
+  - **macOS** (needs Homebrew): `brew install python@3.11 python@3.12 ffmpeg` (if `brew` is absent, report: install Homebrew first — `https://brew.sh`).
+  - **Linux (Debian/Ubuntu)**: `sudo apt-get update && sudo apt-get install -y ffmpeg python3.12`; for the **face env Python 3.11** specifically use `sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt-get install -y python3.11` (or pyenv if the user prefers). For other distros, fall back to the distro package manager or pyenv.
+  - **Windows**: `winget install -e --id Python.Python.3.11` + `Python.Python.3.12` + `Gyan.FFmpeg` (if winget is unavailable, report and ask the user to install from python.org / ffmpeg.org, checking "Add to PATH").
+- Option 2 — **user installs manually**: print the exact commands for their OS (above) and wait.
+- Option 3 — **skip**: proceed anyway; model downloads or runtime will surface errors later.
+
+After any install path, re-run the preflight checks and confirm all green before setup. If the machine cannot get system packages at all, stop and explain rather than failing mid-setup.
 
 ## 1. Locate or obtain the project
 
@@ -116,7 +120,7 @@ Output is H.264 + AAC with the **original audio muxed back** (silent fallback if
 | `bash scripts/run.sh` → env-main not ready | Run `bash scripts/setup.sh` first |
 | ffmpeg not found | Mac `brew install ffmpeg`; Windows: install from ffmpeg.org and add to PATH |
 | `env-face` import fails on macOS Sequoia (`pyexpat`/`libexpat`) | Rerun `setup.sh` — it runs `brew install expat` + `install_name_tool` repoint automatically |
-| Model download fails / offline machine | Pre-seed `models/` from another machine (same layout), or set the download endpoint mirror (`HF_ENDPOINT` for HuggingFace parts) and retry; the runtime typically sets `HF_HUB_OFFLINE=1` so it never phones home once set up |
+| Model download fails / offline machine | Pre-seed `models/` from another machine (same layout), or re-run `setup.sh` which auto-falls-back across candidate sources: set `HF_ENDPOINT` (HuggingFace parts, default `hf-mirror.com`), and mount your own mirror via `MIRROR_MEDIAPIPE` / `MIRROR_PYTORCH` (URL directory prefix) if you maintain one; the runtime sets `HF_HUB_OFFLINE=1` so it never phones home once set up |
 | Face point cloud empty on normal (non-selfie) video | Expected with a bare FaceLandmarker — this pattern uses two-stage detection (BlazeFace full-frame → crop → FaceLandmarker). Check the BlazeFace detector model file exists |
 | torch install fails on Intel Mac | Pin `torch==2.2.2` + `torchvision==0.17.2` (last macOS x86_64 wheels); never bump to ≥2.4 (arm64-only) |
 | Slow CPU processing | Normal on Intel Mac; Apple Silicon auto-uses MPS (`PYTORCH_ENABLE_MPS_FALLBACK=1`); lower `MAX_DIM` or fps for long videos |
