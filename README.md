@@ -62,6 +62,18 @@ git clone https://github.com/tututashu/deep-video-converter-skill.git ~/.workbud
 - macOS / Linux / Windows x64
 - 首次 setup 需联网下载模型（数百 MB），之后完全离线可用
 
+**缺失时可自动安装**，两条路径任选：
+
+1. **skill/agent 路径**：触发本 skill 后自动做环境预检，缺失时询问你；选择"自动安装"后 agent 按系统执行（macOS `brew`、Windows `winget`、Linux `apt`），装完重跑预检。
+2. **纯脚本路径**（无 agent）：`setup.sh` / `setup.bat` 检测到缺失会打印安装指引；设 `AUTO_INSTALL_PREREQS=1` 后重跑即自动安装（macOS/Homebrew 与 Windows/winget 免 sudo 全自动，Linux 需免密 sudo）：
+
+   ```bash
+   AUTO_INSTALL_PREREQS=1 bash scripts/setup.sh     # Mac / Linux
+   set AUTO_INSTALL_PREREQS=1 && scripts\setup.bat  # Windows
+   ```
+
+   > 模型下载同样自动降级：官方源 → `MIRROR_MEDIAPIPE`/`MIRROR_PYTORCH` 镜像 → GitHub Releases 分卷（[models-v1](https://github.com/tututashu/deep-video-converter/releases/tag/models-v1)）。
+
 ## 维护
 
 - 本技能为通用模式：修改 `SKILL.md` 与 `references/project-notes.md` 后提交即可；可适配任意同构项目，无对外"主项目"同步关系
